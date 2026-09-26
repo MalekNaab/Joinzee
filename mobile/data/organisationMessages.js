@@ -1,0 +1,61 @@
+﻿export const organisationMessages = [
+  {
+    id: "1",
+    name: "Sarah Johnson",
+    avatar: "SJ",
+    type: "Family",
+    subtitle: "Kids MMA (Ages 8–12)",
+    preview: "Hi, is there space for my son next week?",
+    time: "10:24",
+    unread: 1,
+    color: "#6940C6",
+  },
+
+  {
+    id: "2",
+    name: "Jayden Smith",
+    avatar: "JS",
+    type: "Family",
+    subtitle: "Teens BJJ (Ages 13–17)",
+    preview: "Thanks for a great session today!",
+    time: "09:17",
+    unread: 1,
+    color: "#385C91",
+  },
+
+  {
+    id: "3",
+    name: "Aisha Khan",
+    avatar: "AK",
+    type: "Family",
+    subtitle: "Adult MMA",
+    preview: "What time does the advanced class start?",
+    time: "Yesterday",
+    unread: 0,
+    color: "#785E4D",
+  },
+
+  {
+    id: "4",
+    name: "Coach Alex",
+    avatar: "CA",
+    type: "Staff",
+    subtitle: "Staff",
+    preview: "Can you confirm the roster for Saturday?",
+    time: "Mon",
+    unread: 0,
+    color: "#4A5568",
+  },
+
+  {
+    id: "5",
+    name: "West London BJJ",
+    avatar: "WLBJJ",
+    type: "Staff",
+    subtitle: "Partner Organisation",
+    preview: "Looking forward to the upcoming event!",
+    time: "Mon",
+    unread: 0,
+    color: "#111111",
+  },
+];
