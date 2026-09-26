@@ -1,4 +1,5 @@
-﻿import { router } from "expo-router";
+﻿import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import {
   SafeAreaView,
   ScrollView,
@@ -152,6 +153,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
 });
+
 
 
 
