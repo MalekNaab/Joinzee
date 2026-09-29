@@ -693,7 +693,7 @@ export default function OrganisationSessionDetails() {
           }
           onPress={() =>
             router.push(
-              `/organisation-dashboard/session/${id}-attendance`
+              `/organisation-dashboard/session/${id}/attendance`
             )
           }
         >
@@ -1223,6 +1223,7 @@ const styles =
       marginTop: 15,
     },
   });
+
 
 
 

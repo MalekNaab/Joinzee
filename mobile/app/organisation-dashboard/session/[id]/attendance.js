@@ -21,7 +21,7 @@ import {
 import {
   getSessionBookings,
   updateBookingStatus,
-} from "../../../services/bookingsApi";
+} from "../../../../services/bookingsApi";
 
 export default function SessionAttendancePage() {
   const params = useLocalSearchParams();
@@ -560,3 +560,4 @@ const styles = StyleSheet.create({
     color: "#ff7d93",
   },
 });
+
