@@ -1,4 +1,6 @@
 ﻿import {
+  Alert,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -12,51 +14,267 @@ import {
   useRouter,
 } from "expo-router";
 
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import {
+  useState,
+} from "react";
+
+import {
+  Ionicons,
+} from "@expo/vector-icons";
+
+import {
+  LinearGradient,
+} from "expo-linear-gradient";
 
 import JoinziieLogo from "../../../components/JoinziieLogo";
 
-import { ORG_SESSIONS } from "../../../data/organisationDemo";
+import {
+  useOrganisationSessions,
+} from "../../../context/OrganisationSessionContext";
+
+import {
+  useAuth,
+} from "../../../context/AuthContext";
 
 import {
   COLORS,
   GRADIENT,
 } from "../../../constants/theme";
 
+
 export default function OrganisationSessionDetails() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const safeBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/organisation-dashboard/sessions");
-    }
-  };
-
-  const { id } =
+  const {
+    id,
+  } =
     useLocalSearchParams();
 
+  const {
+    loading: authLoading,
+  } =
+    useAuth();
+
+  const {
+    loading,
+    getSessionById,
+    cancelSession,
+    deleteSession,
+  } =
+    useOrganisationSessions();
+
+  const [
+    busy,
+    setBusy,
+  ] =
+    useState(null);
+
   const session =
-    ORG_SESSIONS.find(
-      (item) =>
-        item.id === String(id)
+    getSessionById(
+      String(id)
     );
+
+
+  const safeBack =
+    () => {
+      if (
+        router.canGoBack()
+      ) {
+        router.back();
+      } else {
+        router.replace(
+          "/organisation-dashboard/sessions"
+        );
+      }
+    };
+
+
+  const performCancel =
+    async () => {
+      try {
+        setBusy("cancel");
+
+        await cancelSession(
+          String(id)
+        );
+
+        router.replace(
+          "/organisation-dashboard/sessions"
+        );
+      } catch (error) {
+        console.error(
+          error
+        );
+
+        Alert.alert(
+          "Could not cancel session",
+          error.message ||
+            "Please try again."
+        );
+      } finally {
+        setBusy(null);
+      }
+    };
+
+
+  const handleCancel =
+    () => {
+      if (
+        Platform.OS === "web"
+      ) {
+        const confirmed =
+          globalThis.confirm(
+            "Cancel this session? It will be moved out of Upcoming sessions."
+          );
+
+        if (confirmed) {
+          performCancel();
+        }
+
+        return;
+      }
+
+      Alert.alert(
+        "Cancel Session",
+        "Are you sure you want to cancel this session?",
+        [
+          {
+            text: "Keep Session",
+            style: "cancel",
+          },
+          {
+            text: "Cancel Session",
+            style: "destructive",
+            onPress: performCancel,
+          },
+        ]
+      );
+    };
+
+
+  const performDelete =
+    async () => {
+      try {
+        setBusy("delete");
+
+        await deleteSession(
+          String(id)
+        );
+
+        router.replace(
+          "/organisation-dashboard/sessions"
+        );
+      } catch (error) {
+        console.error(
+          error
+        );
+
+        Alert.alert(
+          "Could not delete session",
+          error.message ||
+            "Please try again."
+        );
+      } finally {
+        setBusy(null);
+      }
+    };
+
+
+  const handleDelete =
+    () => {
+      if (
+        Platform.OS === "web"
+      ) {
+        const confirmed =
+          globalThis.confirm(
+            "Permanently delete this session? This cannot be undone."
+          );
+
+        if (confirmed) {
+          performDelete();
+        }
+
+        return;
+      }
+
+      Alert.alert(
+        "Delete Session",
+        "This permanently removes the session from MongoDB. Continue?",
+        [
+          {
+            text: "Keep Session",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: performDelete,
+          },
+        ]
+      );
+    };
+
+
+  if (
+    authLoading ||
+    loading
+  ) {
+    return (
+      <SafeAreaView
+        style={
+          styles.safe
+        }
+      >
+        <View
+          style={
+            styles.center
+          }
+        >
+          <Text
+            style={
+              styles.loadingText
+            }
+          >
+            Loading session...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
 
   if (!session) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.notFound}>
-          <Text style={styles.notFoundTitle}>
+      <SafeAreaView
+        style={
+          styles.safe
+        }
+      >
+        <View
+          style={
+            styles.center
+          }
+        >
+          <Text
+            style={
+              styles.notFoundTitle
+            }
+          >
             Session not found
           </Text>
 
           <Pressable
-            onPress={safeBack}
+            onPress={
+              safeBack
+            }
           >
-            <Text style={styles.backLink}>
-              Go back
+            <Text
+              style={
+                styles.backLink
+              }
+            >
+              Back to Sessions
             </Text>
           </Pressable>
         </View>
@@ -64,195 +282,448 @@ export default function OrganisationSessionDetails() {
     );
   }
 
+
+  const rawStatus =
+    session.rawStatus ||
+    session.status;
+
+  const statusText =
+    rawStatus === "cancelled"
+      ? "Cancelled"
+      : rawStatus === "draft"
+        ? "Draft"
+        : rawStatus === "completed"
+          ? "Completed"
+          : "Published";
+
+  const statusStyle =
+    rawStatus === "cancelled"
+      ? styles.statusCancelled
+      : rawStatus === "draft"
+        ? styles.statusDraft
+        : styles.statusPublished;
+
+  const statusTextStyle =
+    rawStatus === "cancelled"
+      ? styles.statusCancelledText
+      : rawStatus === "draft"
+        ? styles.statusDraftText
+        : styles.statusPublishedText;
+
+  const dateAndTime =
+    [
+      session.date,
+      session.time,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+  const priceText =
+    session.isFree ||
+    Number(session.price) === 0
+      ? "Free"
+      : `£${session.price}`;
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView
+      style={
+        styles.safe
+      }
+    >
       <ScrollView
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={
+          false
+        }
         contentContainerStyle={
           styles.container
         }
       >
-        <View style={styles.topBar}>
+        <View
+          style={
+            styles.topBar
+          }
+        >
           <Pressable
-            onPress={() =>
-              router.back()
+            onPress={
+              safeBack
             }
-            style={styles.back}
+            style={
+              styles.back
+            }
           >
             <Ionicons
               name="chevron-back"
               size={28}
-              color={COLORS.white}
+              color={
+                COLORS.white
+              }
             />
           </Pressable>
 
           <JoinziieLogo />
 
-          <View style={styles.topSpacer} />
+          <View
+            style={
+              styles.topSpacer
+            }
+          />
         </View>
 
-        <Text style={styles.pageTitle}>
+
+        <Text
+          style={
+            styles.pageTitle
+          }
+        >
           Session Details
         </Text>
 
-        <View style={styles.hero}>
-          <View style={styles.heroImage}>
-            <Text style={styles.heroLabel}>
-              {session.label}
+
+        <View
+          style={
+            styles.hero
+          }
+        >
+          <View
+            style={
+              styles.heroImage
+            }
+          >
+            <Text
+              style={
+                styles.heroLabel
+              }
+            >
+              {session.label ||
+                session.category ||
+                "Session"}
             </Text>
 
-            <Text style={styles.placeholder}>
-              Session Image Placeholder
+            <Text
+              style={
+                styles.placeholder
+              }
+            >
+              Session Image
             </Text>
           </View>
 
-          <View style={styles.heroContent}>
-            <Text style={styles.sessionTitle}>
+          <View
+            style={
+              styles.heroContent
+            }
+          >
+            <Text
+              style={
+                styles.sessionTitle
+              }
+            >
               {session.title}
             </Text>
 
-            <View style={styles.published}>
+            <View
+              style={[
+                styles.statusBadge,
+                statusStyle,
+              ]}
+            >
               <View
-                style={styles.greenDot}
+                style={[
+                  styles.statusDot,
+                  rawStatus ===
+                    "cancelled"
+                    ? styles.redDot
+                    : rawStatus ===
+                        "draft"
+                      ? styles.orangeDot
+                      : styles.greenDot,
+                ]}
               />
 
               <Text
-                style={
-                  styles.publishedText
-                }
+                style={[
+                  styles.statusText,
+                  statusTextStyle,
+                ]}
               >
-                Published
+                {statusText}
               </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.infoGrid}>
+
+        <View
+          style={
+            styles.infoGrid
+          }
+        >
           <InfoCard
             icon="calendar-outline"
             label="Date & Time"
-            value={session.date}
+            value={
+              dateAndTime ||
+              "TBC"
+            }
           />
 
           <InfoCard
             icon="location-outline"
             label="Location"
-            value={session.location}
+            value={
+              session.location ||
+              "TBC"
+            }
           />
 
           <InfoCard
             icon="people-outline"
             label="Capacity"
-            value={session.capacity}
+            value={
+              session.capacity ||
+              `${session.booked || 0} / ${session.capacityLimit || 0}`
+            }
           />
 
           <InfoCard
             icon="pricetag-outline"
-            label="Category"
-            value={session.label}
+            label="Price"
+            value={
+              priceText
+            }
           />
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
+
+        <View
+          style={
+            styles.card
+          }
+        >
+          <Text
+            style={
+              styles.sectionTitle
+            }
+          >
             About this session
           </Text>
 
-          <Text style={styles.body}>
-            A structured session hosted by 1WAYFIT MMA.
-            Participants can book through Joinziie and
-            attendance can be managed from the organisation dashboard.
+          <Text
+            style={
+              styles.body
+            }
+          >
+            {session.description ||
+              "No description has been added for this session."}
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>
-              Attendees
-            </Text>
 
-            <Text style={styles.capacityText}>
-              {session.capacity}
-            </Text>
-          </View>
-
-          <Person
-            initials="JS"
-            name="Jayden Smith"
-            status="Confirmed"
-          />
-
-          <Person
-            initials="AM"
-            name="Aaliyah Mohammed"
-            status="Confirmed"
-          />
-
-          <Person
-            initials="FS"
-            name="Fatima Said"
-            status="Pending"
-          />
-
-          <Pressable
-            style={styles.viewAttendees}
+        <View
+          style={
+            styles.card
+          }
+        >
+          <Text
+            style={
+              styles.sectionTitle
+            }
           >
-            <Text
-              style={
-                styles.viewAttendeesText
-              }
-            >
-              View all attendees
-            </Text>
-          </Pressable>
+            Session Information
+          </Text>
+
+          <DetailRow
+            label="Category"
+            value={
+              session.category ||
+              session.label ||
+              "Not set"
+            }
+          />
+
+          <DetailRow
+            label="Age Range"
+            value={
+              session.ageRange ||
+              "Not set"
+            }
+          />
+
+          <DetailRow
+            label="Bookings"
+            value={
+              String(
+                session.booked ||
+                0
+              )
+            }
+          />
+
+          <DetailRow
+            label="Capacity"
+            value={
+              String(
+                session.capacityLimit ||
+                0
+              )
+            }
+          />
         </View>
 
-        <Pressable>
-          <LinearGradient
-            colors={GRADIENT}
-            style={styles.primaryButton}
+
+        {rawStatus !==
+          "cancelled" && (
+          <Pressable
+            disabled={
+              busy !== null
+            }
+            onPress={() =>
+              router.push(
+                `/organisation-dashboard/session/${id}-edit`
+              )
+            }
           >
-            <Ionicons
-              name="create-outline"
-              size={20}
-              color={COLORS.white}
-            />
+            <LinearGradient
+              colors={
+                GRADIENT
+              }
+              style={
+                styles.primaryButton
+              }
+            >
+              <Ionicons
+                name="create-outline"
+                size={20}
+                color={
+                  COLORS.white
+                }
+              />
 
-            <Text style={styles.primaryText}>
-              Edit Session
-            </Text>
-          </LinearGradient>
-        </Pressable>
+              <Text
+                style={
+                  styles.primaryText
+                }
+              >
+                Edit Session
+              </Text>
+            </LinearGradient>
+          </Pressable>
+        )}
 
-        <Pressable style={styles.secondaryButton} onPress={() => router.push(`/organisation-dashboard/session/${id}-attendance`)}><Ionicons name="checkmark-circle-outline"
+
+        <Pressable
+          style={
+            styles.secondaryButton
+          }
+          onPress={() =>
+            router.push(
+              `/organisation-dashboard/session/${id}-attendance`
+            )
+          }
+        >
+          <Ionicons
+            name="checkmark-circle-outline"
             size={20}
-            color={COLORS.white}
+            color={
+              COLORS.white
+            }
           />
 
-          <Text style={styles.secondaryText}>
+          <Text
+            style={
+              styles.secondaryText
+            }
+          >
             Manage Attendance
           </Text>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => router.push(`/organisation-dashboard/session/${id}-message`)}><Ionicons name="chatbubble-outline"
+
+        <Pressable
+          style={
+            styles.secondaryButton
+          }
+          onPress={() =>
+            router.push(
+              `/organisation-dashboard/session/${id}-message`
+            )
+          }
+        >
+          <Ionicons
+            name="chatbubble-outline"
             size={20}
-            color={COLORS.white}
+            color={
+              COLORS.white
+            }
           />
 
-          <Text style={styles.secondaryText}>
+          <Text
+            style={
+              styles.secondaryText
+            }
+          >
             Message Attendees
           </Text>
         </Pressable>
 
-        <Pressable style={styles.cancelButton} onPress={() => router.replace("/organisation-dashboard/sessions")}>
+
+        {rawStatus !==
+          "cancelled" && (
+          <Pressable
+            disabled={
+              busy !== null
+            }
+            style={
+              styles.cancelButton
+            }
+            onPress={
+              handleCancel
+            }
+          >
+            <Ionicons
+              name="close-circle-outline"
+              size={20}
+              color="#FFB347"
+            />
+
+            <Text
+              style={
+                styles.cancelText
+              }
+            >
+              {busy === "cancel"
+                ? "Cancelling..."
+                : "Cancel Session"}
+            </Text>
+          </Pressable>
+        )}
+
+
+        <Pressable
+          disabled={
+            busy !== null
+          }
+          style={
+            styles.deleteButton
+          }
+          onPress={
+            handleDelete
+          }
+        >
           <Ionicons
-            name="close-circle-outline"
+            name="trash-outline"
             size={20}
             color="#FF6277"
           />
 
-          <Text style={styles.cancelText}>
-            Cancel Session
+          <Text
+            style={
+              styles.deleteText
+            }
+          >
+            {busy === "delete"
+              ? "Deleting..."
+              : "Delete Session"}
           </Text>
         </Pressable>
       </ScrollView>
@@ -260,384 +731,419 @@ export default function OrganisationSessionDetails() {
   );
 }
 
+
 function InfoCard({
   icon,
   label,
   value,
 }) {
   return (
-    <View style={styles.infoCard}>
+    <View
+      style={
+        styles.infoCard
+      }
+    >
       <Ionicons
         name={icon}
         size={22}
-        color={COLORS.pink}
+        color={
+          COLORS.pink
+        }
       />
 
-      <Text style={styles.infoLabel}>
+      <Text
+        style={
+          styles.infoLabel
+        }
+      >
         {label}
       </Text>
 
-      <Text style={styles.infoValue}>
+      <Text
+        style={
+          styles.infoValue
+        }
+      >
         {value}
       </Text>
     </View>
   );
 }
 
-function Person({
-  initials,
-  name,
-  status,
+
+function DetailRow({
+  label,
+  value,
 }) {
-  const confirmed =
-    status === "Confirmed";
-
   return (
-    <View style={styles.person}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {initials}
-        </Text>
-      </View>
-
-      <Text style={styles.personName}>
-        {name}
+    <View
+      style={
+        styles.detailRow
+      }
+    >
+      <Text
+        style={
+          styles.detailLabel
+        }
+      >
+        {label}
       </Text>
 
-      <View
-        style={[
-          styles.personStatus,
-          confirmed
-            ? styles.confirmed
-            : styles.pending,
-        ]}
+      <Text
+        style={
+          styles.detailValue
+        }
       >
-        <Text
-          style={[
-            styles.personStatusText,
-            confirmed
-              ? styles.confirmedText
-              : styles.pendingText,
-          ]}
-        >
-          {status}
-        </Text>
-      </View>
+        {value}
+      </Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor:
-      COLORS.background,
-  },
 
-  container: {
-    width: "100%",
-    maxWidth: 520,
-    alignSelf: "center",
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 40,
-  },
+const styles =
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor:
+        COLORS.background,
+    },
 
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+    container: {
+      width: "100%",
+      maxWidth: 520,
+      alignSelf: "center",
+      paddingHorizontal: 18,
+      paddingTop: 18,
+      paddingBottom: 50,
+    },
 
-  back: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-  },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  topSpacer: {
-    width: 44,
-  },
+    loadingText: {
+      color:
+        COLORS.secondary,
+      fontSize: 14,
+    },
 
-  pageTitle: {
-    color: COLORS.white,
-    fontSize: 29,
-    fontWeight: "900",
-    marginTop: 30,
-    marginBottom: 18,
-  },
+    topBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
 
-  hero: {
-    borderRadius: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor:
-      COLORS.surface,
-  },
+    back: {
+      width: 44,
+      height: 44,
+      justifyContent:
+        "center",
+    },
 
-  heroImage: {
-    height: 210,
-    backgroundColor: "#111A2F",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    topSpacer: {
+      width: 44,
+    },
 
-  heroLabel: {
-    color: COLORS.pink,
-    fontSize: 31,
-    fontWeight: "900",
-  },
+    pageTitle: {
+      color:
+        COLORS.white,
+      fontSize: 29,
+      fontWeight: "900",
+      marginTop: 30,
+      marginBottom: 18,
+    },
 
-  placeholder: {
-    color: COLORS.secondary,
-    fontSize: 10,
-    marginTop: 8,
-  },
+    hero: {
+      borderRadius: 18,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      backgroundColor:
+        COLORS.surface,
+    },
 
-  heroContent: {
-    padding: 17,
-  },
+    heroImage: {
+      height: 190,
+      backgroundColor:
+        "#111A2F",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  sessionTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
+    heroLabel: {
+      color:
+        COLORS.pink,
+      fontSize: 28,
+      fontWeight: "900",
+    },
 
-  published: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 10,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: "#103722",
-  },
+    placeholder: {
+      color:
+        COLORS.secondary,
+      fontSize: 10,
+      marginTop: 8,
+    },
 
-  greenDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 6,
-    backgroundColor: "#3FE984",
-  },
+    heroContent: {
+      padding: 17,
+    },
 
-  publishedText: {
-    color: "#53EF94",
-    fontSize: 10,
-    fontWeight: "800",
-  },
+    sessionTitle: {
+      color:
+        COLORS.white,
+      fontSize: 24,
+      fontWeight: "900",
+    },
 
-  infoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 15,
-  },
+    statusBadge: {
+      alignSelf:
+        "flex-start",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 10,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
+      borderRadius: 20,
+    },
 
-  infoCard: {
-    width: "48.8%",
-    minHeight: 110,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor:
-      COLORS.surface,
-    padding: 14,
-  },
+    statusPublished: {
+      backgroundColor:
+        "#103722",
+    },
 
-  infoLabel: {
-    color: COLORS.secondary,
-    fontSize: 9,
-    marginTop: 10,
-  },
+    statusCancelled: {
+      backgroundColor:
+        "#3D1820",
+    },
 
-  infoValue: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: "800",
-    marginTop: 4,
-  },
+    statusDraft: {
+      backgroundColor:
+        "#3D3017",
+    },
 
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor:
-      COLORS.surface,
-    padding: 16,
-    marginTop: 15,
-  },
+    statusDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 7,
+    },
 
-  sectionTitle: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: "900",
-  },
+    greenDot: {
+      backgroundColor:
+        "#3FE984",
+    },
 
-  body: {
-    color: COLORS.secondary,
-    fontSize: 11,
-    lineHeight: 18,
-    marginTop: 9,
-  },
+    redDot: {
+      backgroundColor:
+        "#FF6277",
+    },
 
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent:
-      "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
+    orangeDot: {
+      backgroundColor:
+        "#FFB347",
+    },
 
-  capacityText: {
-    color: COLORS.pink,
-    fontWeight: "800",
-    fontSize: 11,
-  },
+    statusText: {
+      fontSize: 10,
+      fontWeight: "800",
+    },
 
-  person: {
-    minHeight: 59,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor:
-      COLORS.border,
-  },
+    statusPublishedText: {
+      color:
+        "#53EF94",
+    },
 
-  avatar: {
-    width: 37,
-    height: 37,
-    borderRadius: 20,
-    backgroundColor: "#39206D",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
+    statusCancelledText: {
+      color:
+        "#FF8090",
+    },
 
-  avatarText: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: "800",
-  },
+    statusDraftText: {
+      color:
+        "#FFC768",
+    },
 
-  personName: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: "700",
-    flex: 1,
-  },
+    infoGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+      marginTop: 15,
+    },
 
-  personStatus: {
-    borderRadius: 20,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
+    infoCard: {
+      width: "48.8%",
+      minHeight: 110,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      backgroundColor:
+        COLORS.surface,
+      padding: 14,
+    },
 
-  confirmed: {
-    backgroundColor: "#103722",
-  },
+    infoLabel: {
+      color:
+        COLORS.secondary,
+      fontSize: 9,
+      marginTop: 10,
+    },
 
-  pending: {
-    backgroundColor: "#35280B",
-  },
+    infoValue: {
+      color:
+        COLORS.white,
+      fontSize: 12,
+      fontWeight: "800",
+      marginTop: 4,
+    },
 
-  personStatusText: {
-    fontSize: 8,
-    fontWeight: "800",
-  },
+    card: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      backgroundColor:
+        COLORS.surface,
+      padding: 16,
+      marginTop: 15,
+    },
 
-  confirmedText: {
-    color: "#53EF94",
-  },
+    sectionTitle: {
+      color:
+        COLORS.white,
+      fontSize: 17,
+      fontWeight: "900",
+      marginBottom: 10,
+    },
 
-  pendingText: {
-    color: "#FFBD43",
-  },
+    body: {
+      color:
+        COLORS.secondary,
+      fontSize: 11,
+      lineHeight: 18,
+    },
 
-  viewAttendees: {
-    minHeight: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
+    detailRow: {
+      flexDirection: "row",
+      justifyContent:
+        "space-between",
+      borderBottomWidth: 1,
+      borderBottomColor:
+        COLORS.border,
+      paddingVertical: 10,
+    },
 
-  viewAttendeesText: {
-    color: COLORS.pink,
-    fontSize: 10,
-    fontWeight: "800",
-  },
+    detailLabel: {
+      color:
+        COLORS.secondary,
+      fontSize: 11,
+    },
 
-  primaryButton: {
-    height: 54,
-    borderRadius: 14,
-    marginTop: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
+    detailValue: {
+      color:
+        COLORS.white,
+      fontSize: 11,
+      fontWeight: "800",
+    },
 
-  primaryText: {
-    color: COLORS.white,
-    fontWeight: "900",
-    fontSize: 13,
-  },
+    primaryButton: {
+      height: 54,
+      borderRadius: 14,
+      marginTop: 18,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      gap: 8,
+    },
 
-  secondaryButton: {
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginTop: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
+    primaryText: {
+      color:
+        COLORS.white,
+      fontWeight: "900",
+      fontSize: 13,
+    },
 
-  secondaryText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: "700",
-  },
+    secondaryButton: {
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      marginTop: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      gap: 8,
+    },
 
-  cancelButton: {
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#73303B",
-    marginTop: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
+    secondaryText: {
+      color:
+        COLORS.white,
+      fontSize: 12,
+      fontWeight: "700",
+    },
 
-  cancelText: {
-    color: "#FF6277",
-    fontSize: 12,
-    fontWeight: "800",
-  },
+    cancelButton: {
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor:
+        "#785425",
+      marginTop: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      gap: 8,
+    },
 
-  notFound: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    cancelText: {
+      color:
+        "#FFB347",
+      fontSize: 12,
+      fontWeight: "800",
+    },
 
-  notFoundTitle: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: "900",
-  },
+    deleteButton: {
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor:
+        "#73303B",
+      marginTop: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      gap: 8,
+    },
 
-  backLink: {
-    color: COLORS.pink,
-    marginTop: 15,
-  },
-});
+    deleteText: {
+      color:
+        "#FF6277",
+      fontSize: 12,
+      fontWeight: "800",
+    },
 
+    notFoundTitle: {
+      color:
+        COLORS.white,
+      fontSize: 22,
+      fontWeight: "900",
+    },
 
+    backLink: {
+      color:
+        COLORS.pink,
+      marginTop: 15,
+    },
+  });
