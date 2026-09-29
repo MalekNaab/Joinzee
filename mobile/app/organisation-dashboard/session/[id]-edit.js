@@ -48,9 +48,18 @@ export default function EditSessionScreen() {
     useRouter();
 
   const {
-    id,
+    id: routeId,
   } =
     useLocalSearchParams();
+
+  // Expo Router includes "-edit" in this route parameter.
+  // Strip it before using the value as a MongoDB ObjectId.
+  const id =
+    String(
+      Array.isArray(routeId)
+        ? routeId[0]
+        : routeId || ""
+    ).replace(/-edit$/, "");
 
   const {
     loading: authLoading,
@@ -771,3 +780,4 @@ const styles =
       fontSize: 13,
     },
   });
+
