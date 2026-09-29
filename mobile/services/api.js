@@ -291,6 +291,20 @@ export async function getSessions() {
   );
 }
 
+export async function getSession(
+  id
+) {
+  const session =
+    await apiRequest(
+      `/api/sessions/${id}`
+    );
+
+  return normaliseSession(
+    session
+  );
+}
+
+
 export async function getOrganisationSessions(
   organisationId
 ) {
@@ -370,3 +384,4 @@ export {
   API_BASE_URL,
   normaliseSession,
 };
+

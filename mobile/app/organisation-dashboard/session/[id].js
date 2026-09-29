@@ -15,6 +15,7 @@ import {
 } from "expo-router";
 
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -31,6 +32,10 @@ import JoinziieLogo from "../../../components/JoinziieLogo";
 import {
   useOrganisationSessions,
 } from "../../../context/OrganisationSessionContext";
+
+import {
+  getSession as getSessionFromApi,
+} from "../../../services/api";
 
 import {
   useAuth,
@@ -70,10 +75,77 @@ export default function OrganisationSessionDetails() {
   ] =
     useState(null);
 
-  const session =
+  const contextSession =
     getSessionById(
       String(id)
     );
+
+  const [
+    remoteSession,
+    setRemoteSession,
+  ] = useState(null);
+
+  const [
+    directLoading,
+    setDirectLoading,
+  ] = useState(true);
+
+  const session =
+    contextSession ||
+    remoteSession;
+
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDirectSession =
+      async () => {
+        if (!id) {
+          setDirectLoading(false);
+          return;
+        }
+
+        if (contextSession) {
+          setDirectLoading(false);
+          return;
+        }
+
+        try {
+          setDirectLoading(true);
+
+          const found =
+            await getSessionFromApi(
+              String(id)
+            );
+
+          if (active) {
+            setRemoteSession(
+              found
+            );
+          }
+        } catch (error) {
+          console.error(
+            "Could not load session directly:",
+            error
+          );
+        } finally {
+          if (active) {
+            setDirectLoading(
+              false
+            );
+          }
+        }
+      };
+
+    loadDirectSession();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    id,
+    contextSession,
+  ]);
 
 
   const safeBack =
@@ -218,7 +290,11 @@ export default function OrganisationSessionDetails() {
 
   if (
     authLoading ||
-    loading
+    loading ||
+    (
+      !session &&
+      directLoading
+    )
   ) {
     return (
       <SafeAreaView
@@ -1147,3 +1223,4 @@ const styles =
       marginTop: 15,
     },
   });
+
