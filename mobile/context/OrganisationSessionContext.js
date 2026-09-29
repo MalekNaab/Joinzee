@@ -6,24 +6,32 @@
 } from "react";
 
 import {
-  addOrganisationEvent,
-  deleteOrganisationEvent,
-  getOrganisationEvents,
-  updateOrganisationEvent,
-} from "../services/mockDatabase";
+  createOrganisationSession,
+  deleteOrganisationSession,
+  getOrganisationSessions,
+  updateOrganisationSession,
+} from "../services/api";
 
+import {
+  useAuth,
+} from "./AuthContext";
 
 const OrganisationSessionContext =
   createContext(null);
 
-
-const TEST_ORGANISATION_ID =
-  "org_1";
-
-
 export function OrganisationSessionProvider({
   children,
 }) {
+  const {
+    user,
+    userType,
+  } = useAuth();
+
+  const organisationId =
+    user?._id ||
+    user?.id ||
+    null;
+
   const [
     sessions,
     setSessions,
@@ -36,32 +44,67 @@ export function OrganisationSessionProvider({
   ] =
     useState(true);
 
-
-  useEffect(() => {
-    loadSessions();
-  }, []);
+  const [
+    error,
+    setError,
+  ] =
+    useState(null);
 
 
   const loadSessions =
     async () => {
+      if (
+        !organisationId ||
+        userType !==
+          "organisation"
+      ) {
+        setSessions([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
       try {
-        const events =
-          await getOrganisationEvents(
-            TEST_ORGANISATION_ID
+        const liveSessions =
+          await getOrganisationSessions(
+            organisationId
           );
 
-        setSessions(events);
+        setSessions(
+          liveSessions
+        );
+      } catch (err) {
+        console.error(
+          "Could not load organisation sessions:",
+          err
+        );
+
+        setError(
+          err.message
+        );
       } finally {
         setLoading(false);
       }
     };
 
 
+  useEffect(() => {
+    loadSessions();
+  }, [
+    organisationId,
+    userType,
+  ]);
+
+
   const getSessionById =
     (id) => {
       return sessions.find(
         (session) =>
-          session.id ===
+          String(
+            session.id
+          ) ===
           String(id)
       );
     };
@@ -71,20 +114,28 @@ export function OrganisationSessionProvider({
     async (
       session
     ) => {
-      const newEvent =
-        await addOrganisationEvent(
-          TEST_ORGANISATION_ID,
+      if (
+        !organisationId
+      ) {
+        throw new Error(
+          "Organisation is not signed in."
+        );
+      }
+
+      const created =
+        await createOrganisationSession(
+          organisationId,
           session
         );
 
       setSessions(
         (current) => [
+          created,
           ...current,
-          newEvent,
         ]
       );
 
-      return newEvent;
+      return created;
     };
 
 
@@ -94,9 +145,8 @@ export function OrganisationSessionProvider({
       updates
     ) => {
       const updated =
-        await updateOrganisationEvent(
-          TEST_ORGANISATION_ID,
-          String(id),
+        await updateOrganisationSession(
+          id,
           updates
         );
 
@@ -104,7 +154,9 @@ export function OrganisationSessionProvider({
         (current) =>
           current.map(
             (session) =>
-              session.id ===
+              String(
+                session.id
+              ) ===
               String(id)
                 ? updated
                 : session
@@ -129,20 +181,35 @@ export function OrganisationSessionProvider({
     };
 
 
+  const cancelSession =
+    async (
+      id
+    ) => {
+      return updateSession(
+        id,
+        {
+          status:
+            "cancelled",
+        }
+      );
+    };
+
+
   const deleteSession =
     async (
       id
     ) => {
-      await deleteOrganisationEvent(
-        TEST_ORGANISATION_ID,
-        String(id)
+      await deleteOrganisationSession(
+        id
       );
 
       setSessions(
         (current) =>
           current.filter(
             (session) =>
-              session.id !==
+              String(
+                session.id
+              ) !==
               String(id)
           )
       );
@@ -156,6 +223,7 @@ export function OrganisationSessionProvider({
       value={{
         sessions,
         loading,
+        error,
 
         loadSessions,
 
@@ -164,6 +232,7 @@ export function OrganisationSessionProvider({
         addSession,
         updateSession,
         publishSession,
+        cancelSession,
         deleteSession,
       }}
     >

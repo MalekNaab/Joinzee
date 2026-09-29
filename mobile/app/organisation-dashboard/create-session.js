@@ -1,4 +1,5 @@
 ﻿import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -21,8 +22,16 @@ import {
   GRADIENT,
 } from "../../constants/theme";
 
+import {
+  useOrganisationSessions,
+} from "../../context/OrganisationSessionContext";
+
 export default function CreateOrganisationSession() {
   const router = useRouter();
+
+  const {
+    addSession,
+  } = useOrganisationSessions();
 
   const safeBack = () => {
     if (router.canGoBack()) {
@@ -59,6 +68,96 @@ export default function CreateOrganisationSession() {
   const [description, setDescription] =
     useState("");
 
+
+  const saveToDatabase =
+    async (status) => {
+      const publishing =
+        status === "upcoming";
+
+      if (
+        publishing &&
+        (
+          !title.trim() ||
+          !category ||
+          !date.trim() ||
+          !time.trim() ||
+          !location.trim() ||
+          !capacity.trim()
+        )
+      ) {
+        Alert.alert(
+          "Complete Required Fields",
+          "Please complete the title, category, date, time, location and capacity."
+        );
+
+        return;
+      }
+
+      try {
+        await addSession({
+          title:
+            title.trim() ||
+            "Untitled Session",
+
+          category:
+            category ||
+            "Other",
+
+          ageRange:
+            ageRange.trim(),
+
+          date:
+            date.trim(),
+
+          time:
+            time.trim(),
+
+          location:
+            location.trim() ||
+            "TBC",
+
+          capacityLimit:
+            Number(
+              capacity
+            ) || 0,
+
+          price:
+            Number(
+              price
+            ) || 0,
+
+          description:
+            description.trim(),
+
+          status,
+        });
+
+        Alert.alert(
+          publishing
+            ? "Session Published"
+            : "Draft Saved",
+
+          publishing
+            ? "The session has been saved to MongoDB and is now live."
+            : "The draft has been saved to MongoDB."
+        );
+
+        router.replace(
+          "/organisation-dashboard/sessions"
+        );
+
+      } catch (error) {
+        console.error(
+          error
+        );
+
+        Alert.alert(
+          "Could not save session",
+          error.message ||
+            "Please try again."
+        );
+      }
+    };
   const categories = [
     "Martial Arts",
     "Sports",
@@ -234,13 +333,7 @@ export default function CreateOrganisationSession() {
           </Text>
         </Pressable>
 
-        <Pressable
-          onPress={() =>
-            router.replace(
-              "/organisation-dashboard/sessions"
-            )
-          }
-        >
+        <Pressable onPress={() => saveToDatabase("upcoming")}>
           <LinearGradient
             colors={GRADIENT}
             style={styles.publish}
@@ -252,11 +345,7 @@ export default function CreateOrganisationSession() {
         </Pressable>
 
         <Pressable
-          onPress={() =>
-            router.replace(
-              "/organisation-dashboard/sessions"
-            )
-          }
+          onPress={() => saveToDatabase("draft")}
           style={styles.draft}
         >
           <Text style={styles.draftText}>
@@ -467,4 +556,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+
 
