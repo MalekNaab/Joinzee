@@ -25,6 +25,7 @@ export function OrganisationSessionProvider({
   const {
     user,
     userType,
+    loading: authLoading,
   } = useAuth();
 
   const organisationId =
@@ -53,6 +54,12 @@ export function OrganisationSessionProvider({
 
   const loadSessions =
     async () => {
+
+      if (authLoading) {
+        setLoading(true);
+        return;
+      }
+
       if (
         !organisationId ||
         userType !==
@@ -93,6 +100,7 @@ export function OrganisationSessionProvider({
   useEffect(() => {
     loadSessions();
   }, [
+    authLoading,
     organisationId,
     userType,
   ]);
@@ -256,3 +264,4 @@ export function useOrganisationSessions() {
 
   return context;
 }
+
