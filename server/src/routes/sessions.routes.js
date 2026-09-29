@@ -1,12 +1,16 @@
-const express = require("express");
+﻿const express = require("express");
 const Session = require("../models/Session");
 
 const router = express.Router();
 
+// GET ALL SESSIONS
 router.get("/", async (req, res) => {
   try {
     const sessions = await Session.find()
-      .populate("organisationId")
+      .populate({
+        path: "organisationId",
+        select: "-password"
+      })
       .sort({ createdAt: -1 });
 
     res.json(sessions);
@@ -15,6 +19,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+// CREATE SESSION
 router.post("/", async (req, res) => {
   try {
     const session = await Session.create(req.body);
@@ -24,10 +29,14 @@ router.post("/", async (req, res) => {
   }
 });
 
+// GET ONE SESSION
 router.get("/:id", async (req, res) => {
   try {
     const session = await Session.findById(req.params.id)
-      .populate("organisationId");
+      .populate({
+        path: "organisationId",
+        select: "-password"
+      });
 
     if (!session) {
       return res.status(404).json({
@@ -41,14 +50,13 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// UPDATE SESSION
 router.put("/:id", async (req, res) => {
   try {
     const session = await Session.findByIdAndUpdate(
       req.params.id,
       req.body,
-      {
-        new: true
-      }
+      { new: true }
     );
 
     res.json(session);
@@ -57,6 +65,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// DELETE SESSION
 router.delete("/:id", async (req, res) => {
   try {
     await Session.findByIdAndDelete(req.params.id);
