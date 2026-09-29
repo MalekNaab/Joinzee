@@ -27,20 +27,20 @@ import {
   LinearGradient,
 } from "expo-linear-gradient";
 
-import JoinziieLogo from "../../../components/JoinziieLogo";
+import JoinziieLogo from "../../../../components/JoinziieLogo";
 
 import {
   useOrganisationSessions,
-} from "../../../context/OrganisationSessionContext";
+} from "../../../../context/OrganisationSessionContext";
 
 import {
   useAuth,
-} from "../../../context/AuthContext";
+} from "../../../../context/AuthContext";
 
 import {
   COLORS,
   GRADIENT,
-} from "../../../constants/theme";
+} from "../../../../constants/theme";
 
 
 export default function EditSessionScreen() {
@@ -75,7 +75,7 @@ export default function EditSessionScreen() {
 
   const session =
     getSessionById(
-      String(id)
+      String(id).replace(/-edit$/, "").replace(/-edit$/, "").replace(/-edit$/, "")
     );
 
   const [
@@ -232,7 +232,7 @@ export default function EditSessionScreen() {
         setSaving(true);
 
         await updateSession(
-          String(id),
+          String(id).replace(/-edit$/, "").replace(/-edit$/, "").replace(/-edit$/, ""),
           {
             title:
               title.trim(),
@@ -780,4 +780,8 @@ const styles =
       fontSize: 13,
     },
   });
+
+
+
+
 

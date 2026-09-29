@@ -655,7 +655,7 @@ export default function OrganisationSessionDetails() {
             }
             onPress={() =>
               router.push(
-                `/organisation-dashboard/session/${id}-edit`
+                `/organisation-dashboard/session/${id}/edit`
               )
             }
           >
@@ -1223,4 +1223,7 @@ const styles =
       marginTop: 15,
     },
   });
+
+
+
 
