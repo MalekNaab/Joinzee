@@ -2,6 +2,7 @@
   - type: web
     name: joinziie-api
     runtime: node
+    plan: free
     rootDir: server
     buildCommand: npm install
     startCommand: npm start
