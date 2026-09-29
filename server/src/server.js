@@ -1,3 +1,4 @@
+﻿const bookingsRoutes = require("./routes/bookings.routes");
 require("dotenv").config();
 
 const express = require("express");
@@ -31,6 +32,15 @@ app.use("/api/sessions", sessionRoutes);
 
 const PORT = process.env.PORT || 5000;
 
+app.use('/api/bookings', bookingsRoutes);
+
 app.listen(PORT, () => {
   console.log(`Joinziie API running on port ${PORT}`);
 });
+
+
+
+
+
+
+
