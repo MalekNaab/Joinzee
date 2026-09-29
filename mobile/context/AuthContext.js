@@ -5,95 +5,95 @@
   useState,
 } from "react";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import {
-  getCurrentSession,
-  getOrganisationById,
-  getClientById,
-  initialiseMockDatabase,
-  loginOrganisation,
-  loginClient,
-  logout as databaseLogout,
-} from "../services/mockDatabase";
+  loginClient as apiLoginClient,
+  loginOrganisation as apiLoginOrganisation,
+} from "../services/api";
 
+const AuthContext = createContext(null);
 
-const AuthContext =
-  createContext(null);
-
+const SESSION_KEY = "@joinziie_live_session";
 
 export function AuthProvider({
   children,
 }) {
-  const [
-    user,
-    setUser,
-  ] =
+  const [user, setUser] =
     useState(null);
 
-  const [
-    userType,
-    setUserType,
-  ] =
+  const [userType, setUserType] =
     useState(null);
 
-  const [
-    loading,
-    setLoading,
-  ] =
+  const [loading, setLoading] =
     useState(true);
-
 
   useEffect(() => {
     restoreSession();
   }, []);
 
+  const saveSession =
+    async (
+      account,
+      type
+    ) => {
+      await AsyncStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          user: account,
+          userType: type,
+        })
+      );
+    };
 
   const restoreSession =
     async () => {
       try {
-        await initialiseMockDatabase();
+        const stored =
+          await AsyncStorage.getItem(
+            SESSION_KEY
+          );
 
-        const session =
-          await getCurrentSession();
-
-        if (!session) {
-          setLoading(false);
+        if (!stored) {
           return;
         }
 
+        const session =
+          JSON.parse(stored);
 
         if (
-          session.userType ===
-          "organisation"
+          !session?.user ||
+          !session?.userType
         ) {
-          const organisation =
-            await getOrganisationById(
-              session.userId
-            );
-
-          setUser(
-            organisation
+          await AsyncStorage.removeItem(
+            SESSION_KEY
           );
 
-          setUserType(
-            "organisation"
-          );
-        } else {
-          const client =
-            await getClientById(
-              session.userId
-            );
-
-          setUser(client);
-
-          setUserType(
-            session.userType
-          );
+          return;
         }
+
+        setUser(
+          session.user
+        );
+
+        setUserType(
+          session.userType
+        );
+
+      } catch (error) {
+        console.error(
+          "Could not restore Joinziie session:",
+          error
+        );
+
+        await AsyncStorage.removeItem(
+          SESSION_KEY
+        );
+
       } finally {
         setLoading(false);
       }
     };
-
 
   const organisationLogin =
     async (
@@ -101,7 +101,7 @@ export function AuthProvider({
       password
     ) => {
       const organisation =
-        await loginOrganisation(
+        await apiLoginOrganisation(
           email,
           password
         );
@@ -114,9 +114,13 @@ export function AuthProvider({
         "organisation"
       );
 
+      await saveSession(
+        organisation,
+        "organisation"
+      );
+
       return organisation;
     };
-
 
   const clientLogin =
     async (
@@ -124,30 +128,40 @@ export function AuthProvider({
       password
     ) => {
       const client =
-        await loginClient(
+        await apiLoginClient(
           email,
           password
         );
 
-      setUser(client);
+      const type =
+        client.accountType ||
+        "parent";
+
+      setUser(
+        client
+      );
 
       setUserType(
-        client.accountType
+        type
+      );
+
+      await saveSession(
+        client,
+        type
       );
 
       return client;
     };
 
-
   const signOut =
     async () => {
-      await databaseLogout();
+      await AsyncStorage.removeItem(
+        SESSION_KEY
+      );
 
       setUser(null);
-
       setUserType(null);
     };
-
 
   return (
     <AuthContext.Provider
@@ -165,7 +179,6 @@ export function AuthProvider({
     </AuthContext.Provider>
   );
 }
-
 
 export function useAuth() {
   const context =

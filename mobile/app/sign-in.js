@@ -197,7 +197,7 @@ export default function SignInScreen() {
         );
 
         setEmail(
-          "sarah@test.com"
+          "parent@test.com"
         );
 
         setPassword(
@@ -213,7 +213,7 @@ export default function SignInScreen() {
       );
 
       setEmail(
-        "jayden@test.com"
+        "young@test.com"
       );
 
       setPassword(
@@ -1289,3 +1289,4 @@ const styles =
     },
 
   });
+
