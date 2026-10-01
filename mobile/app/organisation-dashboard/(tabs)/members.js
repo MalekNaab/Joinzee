@@ -27,6 +27,10 @@ import {
   getSessionBookings,
 } from "../../../services/bookingsApi";
 
+import {
+  getInvitations,
+} from "../../../services/invitationsApi";
+
 import { COLORS } from "../../../constants/theme";
 
 const filters = [
@@ -301,6 +305,21 @@ export default function OrganisationMembersScreen() {
     setShowAll,
   ] = useState(false);
 
+  const [
+    invitations,
+    setInvitations,
+  ] = useState([]);
+
+  const [
+    invitationsLoading,
+    setInvitationsLoading,
+  ] = useState(false);
+
+  const [
+    invitationsError,
+    setInvitationsError,
+  ] = useState(null);
+
   useEffect(() => {
     let active = true;
 
@@ -398,6 +417,65 @@ export default function OrganisationMembersScreen() {
     sessionsLoading,
   ]);
 
+  useEffect(() => {
+    if (
+      activeFilter !==
+      "Pending"
+    ) {
+      return;
+    }
+
+    let active = true;
+
+    async function loadPendingInvitations() {
+      setInvitationsLoading(true);
+      setInvitationsError(null);
+
+      try {
+        const result =
+          await getInvitations();
+
+        const list =
+          Array.isArray(result)
+            ? result
+            : Array.isArray(
+                result?.invitations
+              )
+            ? result.invitations
+            : [];
+
+        if (active) {
+          setInvitations(list);
+        }
+      } catch (error) {
+        console.error(
+          "Could not load invitations:",
+          error
+        );
+
+        if (active) {
+          setInvitationsError(
+            error.message
+          );
+
+          setInvitations([]);
+        }
+      } finally {
+        if (active) {
+          setInvitationsLoading(
+            false
+          );
+        }
+      }
+    }
+
+    loadPendingInvitations();
+
+    return () => {
+      active = false;
+    };
+  }, [activeFilter]);
+
   const members = useMemo(() => {
     const memberMap =
       new Map();
@@ -450,6 +528,53 @@ export default function OrganisationMembersScreen() {
     );
   }, [bookings]);
 
+  const pendingInvitations =
+    useMemo(() => {
+      return invitations
+        .filter(
+          (invitation) =>
+            String(
+              invitation?.status ||
+                ""
+            ).toLowerCase() ===
+            "pending"
+        )
+        .map(
+          (
+            invitation,
+            index
+          ) => {
+            const email =
+              invitation?.email ||
+              "";
+
+            const role =
+              String(
+                invitation?.role ||
+                  "participant"
+              ).toLowerCase();
+
+            return {
+              id:
+                invitation?._id ||
+                invitation?.id ||
+                `invitation-${index}`,
+              invitationId:
+                invitation?._id ||
+                invitation?.id,
+              email,
+              name: email,
+              role:
+                role === "coach"
+                  ? "Coach"
+                  : "Participant",
+              accountType: role,
+              status: "Pending",
+            };
+          }
+        );
+    }, [invitations]);
+
   const filteredMembers =
     useMemo(() => {
       const query =
@@ -457,7 +582,13 @@ export default function OrganisationMembersScreen() {
           .trim()
           .toLowerCase();
 
-      return members.filter(
+      const source =
+        activeFilter ===
+        "Pending"
+          ? pendingInvitations
+          : members;
+
+      return source.filter(
         (member) => {
           const matchesSearch =
             !query ||
@@ -473,6 +604,13 @@ export default function OrganisationMembersScreen() {
 
           if (!matchesSearch) {
             return false;
+          }
+
+          if (
+            activeFilter ===
+            "Pending"
+          ) {
+            return true;
           }
 
           if (
@@ -494,16 +632,6 @@ export default function OrganisationMembersScreen() {
 
           if (
             activeFilter ===
-            "Pending"
-          ) {
-            return (
-              member.status ===
-              "Pending"
-            );
-          }
-
-          if (
-            activeFilter ===
             "Participants"
           ) {
             return (
@@ -517,10 +645,10 @@ export default function OrganisationMembersScreen() {
       );
     }, [
       members,
+      pendingInvitations,
       search,
       activeFilter,
     ]);
-
   const visibleMembers =
     showAll
       ? filteredMembers
@@ -590,7 +718,17 @@ export default function OrganisationMembersScreen() {
 
   const loading =
     sessionsLoading ||
-    bookingsLoading;
+    bookingsLoading ||
+    (
+      activeFilter ===
+        "Pending" &&
+      invitationsLoading
+    );
+
+  const currentError =
+    activeFilter === "Pending"
+      ? invitationsError
+      : bookingsError;
 
   return (
     <OrgDashboardLayout
@@ -683,10 +821,13 @@ export default function OrganisationMembersScreen() {
               styles.loadingText
             }
           >
-            Loading members...
+            {activeFilter ===
+            "Pending"
+              ? "Loading invitations..."
+              : "Loading members..."}
           </Text>
         </View>
-      ) : bookingsError ? (
+      ) : currentError ? (
         <View
           style={
             styles.messageCard
@@ -697,8 +838,10 @@ export default function OrganisationMembersScreen() {
               styles.errorText
             }
           >
-            Could not load
-            members.
+            {activeFilter ===
+            "Pending"
+              ? "Could not load invitations."
+              : "Could not load members."}
           </Text>
 
           <Text
@@ -706,17 +849,88 @@ export default function OrganisationMembersScreen() {
               styles.messageText
             }
           >
-            {bookingsError}
+            {currentError}
           </Text>
         </View>
       ) : visibleMembers.length >
         0 ? (
-        visibleMembers.map(
-          (member) => (
-            <OrgMemberRow
-              key={member.id}
-              item={member}
-            />
+        activeFilter ===
+        "Pending" ? (
+          visibleMembers.map(
+            (invitation) => (
+              <View
+                key={
+                  invitation.id
+                }
+                style={
+                  styles.pendingRow
+                }
+              >
+                <View
+                  style={
+                    styles.pendingAvatar
+                  }
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={
+                      COLORS.white
+                    }
+                  />
+                </View>
+
+                <View
+                  style={
+                    styles.pendingDetails
+                  }
+                >
+                  <Text
+                    style={
+                      styles.pendingEmail
+                    }
+                    numberOfLines={1}
+                  >
+                    {
+                      invitation.email
+                    }
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.pendingRole
+                    }
+                  >
+                    {
+                      invitation.role
+                    }
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.pendingStatus
+                  }
+                >
+                  <Text
+                    style={
+                      styles.pendingStatusText
+                    }
+                  >
+                    Pending
+                  </Text>
+                </View>
+              </View>
+            )
+          )
+        ) : (
+          visibleMembers.map(
+            (member) => (
+              <OrgMemberRow
+                key={member.id}
+                item={member}
+              />
+            )
           )
         )
       ) : (
@@ -726,7 +940,12 @@ export default function OrganisationMembersScreen() {
           }
         >
           <Ionicons
-            name="people-outline"
+            name={
+              activeFilter ===
+              "Pending"
+                ? "mail-open-outline"
+                : "people-outline"
+            }
             size={28}
             color={
               COLORS.secondary
@@ -738,7 +957,10 @@ export default function OrganisationMembersScreen() {
               styles.emptyTitle
             }
           >
-            No members found
+            {activeFilter ===
+            "Pending"
+              ? "No pending invitations"
+              : "No members found"}
           </Text>
 
           <Text
@@ -746,13 +968,13 @@ export default function OrganisationMembersScreen() {
               styles.messageText
             }
           >
-            Members will appear
-            here when they book
-            organisation sessions.
+            {activeFilter ===
+            "Pending"
+              ? "Invitations waiting to be accepted will appear here."
+              : "Members will appear here when they book organisation sessions."}
           </Text>
         </View>
       )}
-
       {filteredMembers.length >
         5 && (
         <Pressable
@@ -1026,4 +1248,65 @@ const styles =
       fontSize: 12,
       textAlign: "center",
     },
+
+    pendingRow: {
+      minHeight: 70,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      backgroundColor:
+        COLORS.surface,
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 10,
+    },
+
+    pendingAvatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor:
+        COLORS.purple,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
+
+    pendingDetails: {
+      flex: 1,
+      marginLeft: 12,
+    },
+
+    pendingEmail: {
+      color: COLORS.white,
+      fontSize: 13,
+      fontWeight: "800",
+    },
+
+    pendingRole: {
+      color:
+        COLORS.secondary,
+      fontSize: 10,
+      marginTop: 3,
+    },
+
+    pendingStatus: {
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      backgroundColor:
+        "rgba(245,185,66,0.14)",
+      borderWidth: 1,
+      borderColor:
+        "rgba(245,185,66,0.45)",
+    },
+
+    pendingStatusText: {
+      color: "#F5B942",
+      fontSize: 9,
+      fontWeight: "900",
+    },
   });
+
