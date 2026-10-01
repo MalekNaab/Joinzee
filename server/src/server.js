@@ -12,6 +12,7 @@ const app = express();
 
 
 const memberDetailsRoutes = require("./routes/member-details.routes");
+const invitationRoutes = require("./routes/invitations.routes");
 app.use(cors());
 
 app.use(express.json());
@@ -41,10 +42,12 @@ const PORT = process.env.PORT || 5000;
 app.use('/api/bookings', bookingsRoutes);
 
 app.use("/api/member-details", memberDetailsRoutes);
+app.use("/api/invitations", invitationRoutes);
 
 app.listen(PORT, () => {
   console.log(`Joinziie API running on port ${PORT}`);
 });
+
 
 
 

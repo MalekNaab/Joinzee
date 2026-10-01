@@ -19,9 +19,38 @@ export default function OrgDashboardLayout({
   subtitle,
   actionTitle = "View Profile",
   actionVariant = "outline",
+  actionRoute = null,
   children,
 }) {
   const router = useRouter();
+
+  function handleActionPress() {
+    if (actionRoute) {
+      router.push(actionRoute);
+      return;
+    }
+
+    if (actionTitle === "Create Session") {
+      router.push(
+        "/organisation-dashboard/create-session"
+      );
+      return;
+    }
+
+    if (actionTitle === "Invite") {
+      router.push(
+        "/organisation-dashboard/invite-member"
+      );
+      return;
+    }
+
+    if (actionTitle === "View Profile") {
+      router.push(
+        "/organisation-dashboard/profile"
+      );
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
@@ -51,14 +80,27 @@ export default function OrgDashboardLayout({
 
         <View style={styles.summaryRow}>
           <View style={styles.logoCard}>
-            <Text style={styles.logoWhite}>1WAYFIT</Text>
-            <Text style={styles.logoRed}>MMA</Text>
+            <Text style={styles.logoWhite}>
+              1WAYFIT
+            </Text>
+
+            <Text style={styles.logoRed}>
+              MMA
+            </Text>
           </View>
 
           <View style={styles.summaryText}>
-            <Text style={styles.welcome}>Welcome back,</Text>
-            <Text style={styles.orgName}>1WAYFIT MMA</Text>
-            <Text style={styles.orgType}>Organisation</Text>
+            <Text style={styles.welcome}>
+              Welcome back,
+            </Text>
+
+            <Text style={styles.orgName}>
+              1WAYFIT MMA
+            </Text>
+
+            <Text style={styles.orgType}>
+              Organisation
+            </Text>
 
             <View style={styles.verifiedPill}>
               <Ionicons
@@ -66,24 +108,41 @@ export default function OrgDashboardLayout({
                 size={18}
                 color="#0B2213"
               />
-              <Text style={styles.verifiedText}>Verified</Text>
+
+              <Text style={styles.verifiedText}>
+                Verified
+              </Text>
             </View>
           </View>
 
           {actionVariant === "gradient" ? (
-            <Pressable style={styles.actionWrap} onPress={() => actionTitle === "Create Session" ? router.push("/organisation-dashboard/create-session") : null}>
+            <Pressable
+              style={styles.actionWrap}
+              onPress={handleActionPress}
+            >
               <LinearGradient
                 colors={GRADIENT}
                 style={styles.gradientAction}
               >
-                <Text style={styles.gradientActionText}>
+                <Text
+                  style={
+                    styles.gradientActionText
+                  }
+                >
                   {actionTitle}
                 </Text>
               </LinearGradient>
             </Pressable>
           ) : (
-            <Pressable style={styles.outlineAction} onPress={() => router.push("/organisation-dashboard/profile")}>
-              <Text style={styles.outlineActionText}>
+            <Pressable
+              style={styles.outlineAction}
+              onPress={handleActionPress}
+            >
+              <Text
+                style={
+                  styles.outlineActionText
+                }
+              >
                 {actionTitle}
               </Text>
             </Pressable>
@@ -92,9 +151,16 @@ export default function OrgDashboardLayout({
 
         {!!title && (
           <View style={styles.pageHeader}>
-            <Text style={styles.pageTitle}>{title}</Text>
+            <Text style={styles.pageTitle}>
+              {title}
+            </Text>
+
             {!!subtitle && (
-              <Text style={styles.pageSubtitle}>{subtitle}</Text>
+              <Text
+                style={styles.pageSubtitle}
+              >
+                {subtitle}
+              </Text>
             )}
           </View>
         )}
@@ -273,6 +339,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-
-
-
