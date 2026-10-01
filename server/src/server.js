@@ -14,7 +14,6 @@ const app = express();
 const memberDetailsRoutes = require("./routes/member-details.routes");
 app.use(cors());
 
-const memberDetailsRoutes = require("./routes/member-details.routes");
 app.use(express.json());
 
 connectDB();
@@ -32,16 +31,13 @@ app.get("/api/health", (req, res) => {
 });
 
 
-const memberDetailsRoutes = require("./routes/member-details.routes");
 app.use("/api/auth", authRoutes);
 
-const memberDetailsRoutes = require("./routes/member-details.routes");
 app.use("/api/sessions", sessionRoutes);
 
 const PORT = process.env.PORT || 5000;
 
 
-const memberDetailsRoutes = require("./routes/member-details.routes");
 app.use('/api/bookings', bookingsRoutes);
 
 app.use("/api/member-details", memberDetailsRoutes);
