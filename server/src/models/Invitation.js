@@ -28,6 +28,7 @@ const invitationSchema = new mongoose.Schema(
       enum: [
         "pending",
         "accepted",
+        "declined",
         "cancelled",
       ],
       default: "pending",
@@ -44,8 +45,18 @@ const invitationSchema = new mongoose.Schema(
       default: null,
     },
 
+    declinedAt: {
+      type: Date,
+      default: null,
+    },
+
     cancelledAt: {
       type: Date,
+      default: null,
+    },
+
+    acceptedByUserId: {
+      type: String,
       default: null,
     },
   },
