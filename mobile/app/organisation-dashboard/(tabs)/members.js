@@ -858,14 +858,19 @@ export default function OrganisationMembersScreen() {
         "Pending" ? (
           visibleMembers.map(
             (invitation) => (
-              <View
-                key={
-                  invitation.id
-                }
-                style={
-                  styles.pendingRow
+              <Pressable
+                key={invitation.id}
+                onPress={() =>
+                  require("expo-router").router.push(
+                    `/organisation-dashboard/invitation/${invitation.id}`
+                  )
                 }
               >
+                <View
+                  style={
+                    styles.pendingRow
+                  }
+                >
                 <View
                   style={
                     styles.pendingAvatar
@@ -921,6 +926,7 @@ export default function OrganisationMembersScreen() {
                   </Text>
                 </View>
               </View>
+              </Pressable>
             )
           )
         ) : (
@@ -1309,4 +1315,5 @@ const styles =
       fontWeight: "900",
     },
   });
+
 
