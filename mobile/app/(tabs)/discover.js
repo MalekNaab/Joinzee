@@ -44,7 +44,12 @@ export default function DiscoverScreen() {
 
           <JoinziieLogo />
 
-          <Pressable style={styles.notification}>
+          <Pressable
+            style={styles.notification}
+            onPress={() =>
+              router.push("/notifications")
+            }
+          >
             <Text style={styles.notificationIcon}>
               ♧
             </Text>
@@ -348,3 +353,4 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 });
+
