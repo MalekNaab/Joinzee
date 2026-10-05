@@ -1,4 +1,4 @@
-﻿import {
+import {
   createContext,
   useContext,
   useEffect,
@@ -229,6 +229,8 @@ export function OrganisationSessionProvider({
   return (
     <OrganisationSessionContext.Provider
       value={{
+        organisationId,
+
         sessions,
         loading,
         error,
@@ -264,4 +266,3 @@ export function useOrganisationSessions() {
 
   return context;
 }
-

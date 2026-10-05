@@ -1,4 +1,4 @@
-﻿import {
+import {
   StyleSheet,
   Text,
   View,
@@ -271,6 +271,7 @@ function sessionHasFinished(session) {
 
 export default function OrganisationMembersScreen() {
   const {
+    organisationId,
     sessions,
     loading: sessionsLoading,
   } = useOrganisationSessions();
@@ -425,6 +426,13 @@ export default function OrganisationMembersScreen() {
       return;
     }
 
+    if (!organisationId) {
+      setInvitations([]);
+      setInvitationsLoading(false);
+      setInvitationsError(null);
+      return;
+    }
+
     let active = true;
 
     async function loadPendingInvitations() {
@@ -433,7 +441,10 @@ export default function OrganisationMembersScreen() {
 
       try {
         const result =
-          await getInvitations();
+          await getInvitations({
+            organisationId,
+            status: "pending",
+          });
 
         const list =
           Array.isArray(result)
@@ -474,7 +485,10 @@ export default function OrganisationMembersScreen() {
     return () => {
       active = false;
     };
-  }, [activeFilter]);
+  }, [
+    activeFilter,
+    organisationId,
+  ]);
 
   const members = useMemo(() => {
     const memberMap =
@@ -736,6 +750,13 @@ export default function OrganisationMembersScreen() {
       subtitle="Manage your community."
       actionTitle="Invite"
       actionVariant="gradient"
+      actionRoute={
+        organisationId
+          ? `/organisation-dashboard/invite-member?organisationId=${encodeURIComponent(
+              organisationId
+            )}`
+          : "/organisation-dashboard/invite-member"
+      }
     >
       <View
         style={
